@@ -23,4 +23,9 @@ RCT_EXPORT_MODULE();
     return YES;
 }
 
+RCT_EXPORT_VIEW_PROPERTY(contentSourceID, NSString);
+RCT_EXPORT_VIEW_PROPERTY(videoID, NSString);
+RCT_EXPORT_VIEW_PROPERTY(assetKey, NSString);
+// RCT_EXPORT_VIEW_PROPERTY(src, NSString);
+
 @end

@@ -21,7 +21,7 @@ Pod::Spec.new do |s|
 
   s.dependency "React"
 	# s.dependency 'AFNetworking', '~> 3.0'
-  # ss.dependency 'react-native-video/Video', '~> 1.1.4'
+  # s.dependency 'react-native-video', '~> 4.4.1'
   s.dependency 'GoogleAds-IMA-iOS-SDK', '~> 3.9'
   # s.dependency "..."
 end

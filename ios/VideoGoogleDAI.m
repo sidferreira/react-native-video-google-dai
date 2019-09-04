@@ -23,44 +23,42 @@ static NSString *const kVideoID = @"ElizabethHowell_2018P";
 
 @interface RCTVideoGoogleDAI () <IMAAdsLoaderDelegate, IMAStreamManagerDelegate, IMAAVPlayerVideoDisplayDelegate>
 
-@property(readonly) AVPlayer *contentPlayer;
-@property(nonatomic, strong) RCTVideo *rctVideo;
-@property(nonatomic, strong) IMAAdsLoader *adsLoader;
-@property(nonatomic, strong) IMAStreamManager *streamManager;
-@property(nonatomic, strong) IMAAVPlayerVideoDisplay *imaVideoDisplay;
 
 @end
 
 @implementation RCTVideoGoogleDAI
 
-// RCT_EXPORT_MODULE()
+IMAAdDisplayContainer* _adDisplayContainer;
+AVPlayer* _contentPlayer;
+RCTVideo* _rctVideo;
+IMAAdsLoader* _adsLoader;
+IMAStreamManager* _streamManager;
+IMAAVPlayerVideoDisplay* _avPlayerVideoDisplay;
+NSString* _contentSourceID;
+NSString* _videoID;
+NSString* _assetKey;
 
-// - (UIView *)view
-// {
-//     // TODO: Implement some actually useful functionality
-////     UILabel * label = [[UILabel alloc] init];
-////     [label setTextColor:[UIColor redColor]];
-////     [label setText: @"*****"];
-////     [label sizeToFit];
-////     UIView * wrapper = [[UIView alloc] init];
-////     [wrapper addSubview:label];
-////     return wrapper;
-//     UIView* view = [super view];
-//     NSLog(@"IMA >>> view");
-//     for (UIView *subview in view.subviews) {
-//         if ([subview.nativeID isEqualToString: @"myIDString"]) {
-//             NSLog(@"IMA >>> subview is RCTVideoGoogleDAI");
-//             [self setupRCTVideo:(RCTVideo *)subview];
-//         }
-//     }
-//     return view;
-// }
 - (instancetype)initWithEventDispatcher:(RCTEventDispatcher *)eventDispatcher
 {
     if ((self = [super init])) {
         [self setupAdsLoader];
     }
     return self;
+}
+
+- (void)setContentSourceID:(NSString *)contentSourceID
+{
+    _contentSourceID = contentSourceID;
+}
+
+- (void)setVideoID:(NSString *)videoID
+{
+    _videoID = videoID;
+}
+
+- (void)setAssetKey:(NSString *)assetKey
+{
+    _assetKey = assetKey;
 }
 
 - (void)insertReactSubview:(UIView *)subview atIndex:(NSInteger)atIndex
@@ -83,18 +81,6 @@ static NSString *const kVideoID = @"ElizabethHowell_2018P";
     }
 }
 
-//- (void)layoutSubviews
-//{
-//    [super layoutSubviews];
-//    NSLog(@"IMA >>> layoutSubviews");
-////    for (UIView *subview in self.subviews) {
-////        if [subview.nativeID isEqualToString: "myIDString"] {
-////            // found it!
-////        }
-////    }
-//}
-
-
 -(void) setupRCTVideo: (RCTVideo *) rctVideo
 {
     if (rctVideo != nil && rctVideo != _rctVideo) {
@@ -103,6 +89,7 @@ static NSString *const kVideoID = @"ElizabethHowell_2018P";
             _rctVideo.rctVideoDelegate = nil;
         }
         _rctVideo = rctVideo;
+        // _adDisplayContainer = [[IMAAdDisplayContainer alloc] initWithAdContainer:_rctVideo companionSlots:nil];
         _rctVideo.rctVideoDelegate = self;
     } else if(rctVideo == nil) {
         // CLEANUP!
@@ -111,9 +98,12 @@ static NSString *const kVideoID = @"ElizabethHowell_2018P";
 
 -(AVPlayer *) didSetupPlayerWithPlayerItem:(AVPlayerItem *) playerItem withSource:(NSDictionary *) source {
     NSLog(@"IMA >>> didSetupPlayerWithPlayerItem:withSource");
-    _contentPlayer = [AVPlayer playerWithPlayerItem:nil];
-    [self requestStreamForSource: source];
-    return _contentPlayer;
+    if (_contentSourceID != nil && (_assetKey != nil || _videoID != nil)) {
+        _contentPlayer = [AVPlayer playerWithPlayerItem:nil];
+        [self requestStreamForSource: source];
+        return _contentPlayer;
+    }
+    return nil;
 }
 
 #pragma mark SDK Setup
@@ -123,33 +113,30 @@ static NSString *const kVideoID = @"ElizabethHowell_2018P";
     IMASettings* settings = [[IMASettings alloc] init];
     settings.autoPlayAdBreaks = NO;
     settings.enableDebugMode = YES;
-    self.adsLoader = [[IMAAdsLoader alloc] initWithSettings:settings];
-    self.adsLoader.delegate = self;
+    _adsLoader = [[IMAAdsLoader alloc] initWithSettings:settings];
+    _adsLoader.delegate = self;
 }
 
 - (void)requestStreamForSource:(NSDictionary *)source {
     NSLog(@"IMA >>> requestStreamForSource");
     // Create an ad display container for ad rendering.
-    IMAAdDisplayContainer *adDisplayContainer =
-    [[IMAAdDisplayContainer alloc] initWithAdContainer:_rctVideo companionSlots:nil];
+    _adDisplayContainer = [[IMAAdDisplayContainer alloc] initWithAdContainer:_rctVideo companionSlots:nil];
     // Create an IMAAVPlayerVideoDisplay to give the SDK access to your video player.
-    _imaVideoDisplay =
-    [[IMAAVPlayerVideoDisplay alloc] initWithAVPlayer:_contentPlayer];
-    // _imaVideoDisplay.avPlayerVideoDisplayDelegate = self;
-//    imaVideoDisplay.delegate = self;
+    _avPlayerVideoDisplay = [[IMAAVPlayerVideoDisplay alloc] initWithAVPlayer:_contentPlayer];
+//    avPlayerVideoDisplay.delegate = self;
     // Create a stream request. Use one of "Live stream request" or "VOD request".
     // Live stream request.
 //    IMALiveStreamRequest *request = [[IMALiveStreamRequest alloc] initWithAssetKey:kAssetKey
 //                                                                adDisplayContainer:adDisplayContainer
-//                                                                      videoDisplay:imaVideoDisplay];
+//                                                                      videoDisplay:avPlayerVideoDisplay];
     // VOD request. Comment out the IMALiveStreamRequest above and uncomment this IMAVODStreamRequest
     // to switch from a livestream to a VOD stream.
     IMAVODStreamRequest *request = [[IMAVODStreamRequest alloc] initWithContentSourceID:kContentSourceID
      videoID:kVideoID
-     adDisplayContainer:adDisplayContainer
-     videoDisplay:self.imaVideoDisplay];
+     adDisplayContainer:_adDisplayContainer
+     videoDisplay:_avPlayerVideoDisplay];
     [request setAdTagParameters:@{@"cust_params":@"dfptest=REACT_NATIVE_DEV", @"iu":@"/5641/ted3/mobile"}];
-    [self.adsLoader requestStreamWithRequest:request];
+    [_adsLoader requestStreamWithRequest:request];
 }
 
 #pragma mark AdsLoader Delegates
@@ -157,9 +144,9 @@ static NSString *const kVideoID = @"ElizabethHowell_2018P";
 - (void)adsLoader:(IMAAdsLoader *)loader adsLoadedWithData:(IMAAdsLoadedData *)adsLoadedData {
     NSLog(@"IMA >>> Stream created with: %@.", adsLoadedData.streamManager.streamId);
     // adsLoadedData.streamManager is set because we made an IMAStreamRequest.
-    self.streamManager = adsLoadedData.streamManager;
-    self.streamManager.delegate = self;
-    [self.streamManager initializeWithAdsRenderingSettings:nil];
+    _streamManager = adsLoadedData.streamManager;
+    _streamManager.delegate = self;
+    [_streamManager initializeWithAdsRenderingSettings:nil];
 }
 
 - (void)adsLoader:(IMAAdsLoader *)loader failedWithErrorData:(IMAAdLoadingErrorData *)adErrorData {
@@ -180,7 +167,7 @@ static NSString *const kVideoID = @"ElizabethHowell_2018P";
         */
         case kIMAAdEvent_STREAM_LOADED: {
 //            if (_rctVideo.paused) {
-//                [_imaVideoDisplay pause];
+//                [_avPlayerVideoDisplay pause];
 //            }
             NSLog(@"IMA >>> StreamManager event (%@/%@).", event.typeString, @"kIMAAdEvent_STREAM_LOADED");
 //            [self->_player pause];
@@ -237,7 +224,7 @@ static NSString *const kVideoID = @"ElizabethHowell_2018P";
         *  Ad break started (only used for dynamic ad insertion).
         */
         case kIMAAdEvent_AD_BREAK_STARTED: {
-            // [_imaVideoDisplay pause];
+            // [_avPlayerVideoDisplay pause];
             NSLog(@"IMA >>> StreamManager event (%@/%@).", event.typeString, @"kIMAAdEvent_AD_BREAK_STARTED");
             NSLog(@"Ad break started");
             break;

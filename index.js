@@ -1,10 +1,23 @@
 import React from 'react';
-import { requireNativeComponent } from 'react-native';
+import {
+  requireNativeComponent,
+  StyleSheet,
+  ViewPropTypes,
+} from 'react-native';
+import PropTypes from 'prop-types';
 import RNVideo from 'react-native-video';
 
 const RCTVideoGoogleDAI = requireNativeComponent('RCTVideoGoogleDAI', null);
 
-const VideoGoogleDAI = ({ playerRef, daiRef, style, ...playerProps }) => {
+const VideoGoogleDAI = ({
+  playerRef,
+  daiRef,
+  contentSourceID,
+  videoID,
+  assetKey,
+  style,
+  ...playerProps
+}) => {
   const videoRef = React.useRef();
 
   React.useEffect(() => {
@@ -20,11 +33,26 @@ const VideoGoogleDAI = ({ playerRef, daiRef, style, ...playerProps }) => {
           nativeID="RCTVideoGoogleDAI"
           {...playerProps}
           ref={videoRef}
-          style={{ flex: 1 }}
+          style={styles.videoPlayer}
         />
       </RCTVideoGoogleDAI>
     </>
   );
 };
 
+VideoGoogleDAI.propTypes = {
+  playerRef: PropTypes.func,
+  daiRef: PropTypes.func,
+  contentSourceID: PropTypes.string,
+  videoID: PropTypes.string,
+  assetKey: PropTypes.string,
+  style: ViewPropTypes,
+};
+
 export default VideoGoogleDAI;
+
+const styles = StyleSheet.create({
+  videoPlayer: {
+    flex: 1,
+  },
+});
