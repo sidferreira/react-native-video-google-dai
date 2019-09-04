@@ -1,25 +1,7 @@
 #import "VideoGoogleDAI.h"
-// #include <AVFoundation/AVFoundation.h>
-// #import "RCTVideo.h"
-
 
 static NSString *const statusKeyPath = @"status";
 static NSString *const rctVideoNativeID = @"RCTVideoGoogleDAI";
-
-static NSString *const kTestAppContentUrl_M3U8 =
-@"http://devimages.apple.com/iphone/samples/bipbop/bipbopall.m3u8";
-
-/// Live stream asset key.
-static NSString *const kAssetKey = @"sN_IYUG8STe1ZzhIIE_ksA";
-/// VOD content source ID.
-static NSString *const kContentSourceID = @"2503702";
-// static NSString *const kContentSourceID = @"19463";
-/// VOD video ID.
-//static NSString *const kVideoID = @"googleio-highlights";
-// static NSString *const kVideoID = @"douglas_thomas_how_a_typeface_helped_launch_apollo";
-// static NSString *const kVideoID = @"googleio-highlights";
-static NSString *const kVideoID = @"ElizabethHowell_2018P";
-
 
 @interface RCTVideoGoogleDAI () <IMAAdsLoaderDelegate, IMAStreamManagerDelegate, IMAAVPlayerVideoDisplayDelegate>
 
@@ -84,12 +66,10 @@ NSString* _assetKey;
 -(void) setupRCTVideo: (RCTVideo *) rctVideo
 {
     if (rctVideo != nil && rctVideo != _rctVideo) {
-        // reset
         if (_rctVideo != nil) {
             _rctVideo.rctVideoDelegate = nil;
         }
         _rctVideo = rctVideo;
-        // _adDisplayContainer = [[IMAAdDisplayContainer alloc] initWithAdContainer:_rctVideo companionSlots:nil];
         _rctVideo.rctVideoDelegate = self;
     } else if(rctVideo == nil) {
         // CLEANUP!
@@ -121,20 +101,26 @@ NSString* _assetKey;
     NSLog(@"IMA >>> requestStreamForSource");
     // Create an ad display container for ad rendering.
     _adDisplayContainer = [[IMAAdDisplayContainer alloc] initWithAdContainer:_rctVideo companionSlots:nil];
+
     // Create an IMAAVPlayerVideoDisplay to give the SDK access to your video player.
     _avPlayerVideoDisplay = [[IMAAVPlayerVideoDisplay alloc] initWithAVPlayer:_contentPlayer];
-//    avPlayerVideoDisplay.delegate = self;
+    // avPlayerVideoDisplay.delegate = self;
+
     // Create a stream request. Use one of "Live stream request" or "VOD request".
-    // Live stream request.
-//    IMALiveStreamRequest *request = [[IMALiveStreamRequest alloc] initWithAssetKey:kAssetKey
-//                                                                adDisplayContainer:adDisplayContainer
-//                                                                      videoDisplay:avPlayerVideoDisplay];
-    // VOD request. Comment out the IMALiveStreamRequest above and uncomment this IMAVODStreamRequest
-    // to switch from a livestream to a VOD stream.
-    IMAVODStreamRequest *request = [[IMAVODStreamRequest alloc] initWithContentSourceID:kContentSourceID
-     videoID:kVideoID
-     adDisplayContainer:_adDisplayContainer
-     videoDisplay:_avPlayerVideoDisplay];
+    IMAStreamRequest *request;
+    if (_assetKey) {
+        // Live stream request.
+        request = [[IMALiveStreamRequest alloc] initWithAssetKey:_assetKey
+                                                adDisplayContainer:_adDisplayContainer
+                                                videoDisplay:_avPlayerVideoDisplay];
+    } else {
+        // VOD request. Comment out the IMALiveStreamRequest above and uncomment this IMAVODStreamRequest
+        // to switch from a livestream to a VOD stream.
+        request = [[IMAVODStreamRequest alloc] initWithContentSourceID:_contentSourceID
+                                                 videoID:_videoID
+                                                 adDisplayContainer:_adDisplayContainer
+                                                 videoDisplay:_avPlayerVideoDisplay];
+    }
     [request setAdTagParameters:@{@"cust_params":@"dfptest=REACT_NATIVE_DEV", @"iu":@"/5641/ted3/mobile"}];
     [_adsLoader requestStreamWithRequest:request];
 }
@@ -142,7 +128,7 @@ NSString* _assetKey;
 #pragma mark AdsLoader Delegates
 
 - (void)adsLoader:(IMAAdsLoader *)loader adsLoadedWithData:(IMAAdsLoadedData *)adsLoadedData {
-    NSLog(@"IMA >>> Stream created with: %@.", adsLoadedData.streamManager.streamId);
+//    NSLog(@"IMA >>> Stream created with: %@.", adsLoadedData.streamManager.streamId);
     // adsLoadedData.streamManager is set because we made an IMAStreamRequest.
     _streamManager = adsLoadedData.streamManager;
     _streamManager.delegate = self;
@@ -170,45 +156,20 @@ NSString* _assetKey;
 //                [_avPlayerVideoDisplay pause];
 //            }
             NSLog(@"IMA >>> StreamManager event (%@/%@).", event.typeString, @"kIMAAdEvent_STREAM_LOADED");
-//            [self->_player pause];
-//            if (self->_player.currentItem != nil) {
-//                NSLog(@"IMA >>> self->_player.currentItem.duration: %f", CMTimeGetSeconds(self->_player.currentItem.duration));
-//            } else {
-//                NSLog(@"IMA >>> self->_player.currentItem is nil");
-//            }
-//            NSLog(@"IMA >>> kIMAAdEvent_STREAM_LOADED SET RATE 0");
-//            [streamManager.player];
-
-            // _playerItem = _player.currentItem;
-            // [self addPlayerItemObservers];
-
-            // [_player addObserver:self forKeyPath:playbackRate options:0 context:nil];
-            // _playbackRateObserverRegistered = YES;
-
-            // [_player addObserver:self forKeyPath:externalPlaybackActive options:0 context:nil];
-            // _isExternalPlaybackActiveObserverRegistered = YES;
-
-            // [self addPlayerTimeObserver];
             break;
         }
+
         /**
         *  Stream has started playing (only used for dynamic ad insertion). Start
         *  Picture-in-Picture here if applicable.
         */
         case kIMAAdEvent_STREAM_STARTED: {
-//            NSLog(@"IMA >>> kIMAAdEvent_STREAM_STARTED SET RATE 0 (1)");
-//            [self->_player pause];
             NSLog(@"IMA >>> StreamManager event (%@/%@).", event.typeString, @"kIMAAdEvent_STREAM_STARTED");
             NSLog(@"IMA >>> self->_player.currentItem.duration: %f", CMTimeGetSeconds(_contentPlayer.currentItem.duration));
             AVPlayerItem* playerItem = _contentPlayer.currentItem;
             NSDictionary* source = [[NSDictionary alloc] init];
-//            [_rctVideo setupPlayerWithPlayerItem:playerItem withSource: source];
             [_rctVideo setupWithPlayer:_contentPlayer playerItem:playerItem source:source];
             [_rctVideo observeValueForKeyPath:statusKeyPath ofObject:playerItem change:nil context:nil];
-//            [self addPlayerItemObservers];
-//            NSLog(@"IMA >>> kIMAAdEvent_STREAM_STARTED SET RATE 0 (2)");
-//            [self->_player pause];
-            // [self->_player pause];
             break;
         }
 

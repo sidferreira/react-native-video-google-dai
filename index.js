@@ -28,7 +28,13 @@ const VideoGoogleDAI = ({
 
   return (
     <>
-      <RCTVideoGoogleDAI ref={daiRef} style={style}>
+      <RCTVideoGoogleDAI
+        ref={daiRef}
+        style={style}
+        contentSourceID={contentSourceID}
+        videoID={videoID}
+        assetKey={assetKey}
+      >
         <RNVideo
           nativeID="RCTVideoGoogleDAI"
           {...playerProps}
